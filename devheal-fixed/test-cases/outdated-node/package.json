@@ -1,0 +1,7 @@
+{
+  "name": "outdated-node-test",
+  "type": "module",
+  "engines": {
+    "node": "16.x"
+  }
+}

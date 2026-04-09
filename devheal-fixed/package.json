@@ -1,0 +1,46 @@
+{
+  "name": "devheal",
+  "version": "2.0.0",
+  "description": "AI-powered dev environment health monitor & auto-fixer",
+  "bin": {
+    "devheal": "./dist/cli.js"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/cli.js",
+    "dev": "tsup --watch",
+    "build": "tsup",
+    "test": "jest",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.68",
+    "@clack/prompts": "^1.2.0",
+    "ai": "^6.0.154",
+    "boxen": "^7.1.1",
+    "chalk": "^5.6.2",
+    "cli-table3": "^0.6.5",
+    "commander": "^11.1.0",
+    "dotenv": "^16.6.1",
+    "figures": "^6.1.0",
+    "gradient-string": "^2.0.2",
+    "ini": "^4.1.1",
+    "node-fetch": "^3.3.2",
+    "ora": "^8.2.0",
+    "semver": "^7.5.4",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.5.2",
+    "eslint": "^10.2.0",
+    "jest": "^30.3.0",
+    "ts-jest": "^29.4.9",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

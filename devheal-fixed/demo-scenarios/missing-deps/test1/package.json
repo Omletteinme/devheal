@@ -1,0 +1,6 @@
+{
+  "name": "missing-deps-test-1",
+  "dependencies": {
+    "express": "^4.18.0"
+  }
+}

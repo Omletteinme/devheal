@@ -1,0 +1,8 @@
+{
+  "name": "missing-multiple-test",
+  "type": "module",
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "jest": "^29.0.0"
+  }
+}
