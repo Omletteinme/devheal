@@ -4,16 +4,29 @@ import * as path from 'path';
 import chalk from 'chalk';
 import * as p from '@clack/prompts';
 import { generateObject } from 'ai';
-import { createAnthropic } from '@ai-sdk/anthropic';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { z } from 'zod';
 import { checkFileExists } from '../utils.js';
 
 export async function runDoctor(query: string, targetFile: string | undefined, cwd: string) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    p.log.error('ANTHROPIC_API_KEY is missing in your environment.');
-    p.note('Add it to your .env file or export it: `export ANTHROPIC_API_KEY=sk-ant-...`', 'Setup Instructions');
+    p.log.error('GEMINI_API_KEY is missing in your environment.');
+    p.note('Add it to your .env file or export it: `export GEMINI_API_KEY=AIza...`', 'Setup Instructions');
     return;
+  }
+
+  if (!targetFile) {
+    const tokens = query.split(/\s+/);
+    const potentialFiles = tokens.filter(t => t.includes('.'));
+    for (const token of potentialFiles) {
+      const cleanPath = token.replace(/[^a-zA-Z0-9_\-\.\/]/g, '');
+      if (cleanPath && existsSync(path.resolve(cwd, cleanPath))) {
+         targetFile = cleanPath;
+         p.log.info(chalk.cyan(`Auto-detected relevant file from query: ${targetFile}`));
+         break;
+      }
+    }
   }
 
   let fileContent = '';
@@ -43,9 +56,9 @@ export async function runDoctor(query: string, targetFile: string | undefined, c
   s.start('Asking AI to diagnose the issue...');
 
   try {
-    const anthropicProvider = createAnthropic({ apiKey: apiKey });
+    const googleProvider = createGoogleGenerativeAI({ apiKey: apiKey });
     const { object } = await generateObject({
-      model: anthropicProvider('claude-3-5-sonnet-latest'),
+      model: googleProvider('gemini-1.5-flash'),
       schema: z.object({
         rootCause: z.string().describe('Detailed explanation of why the error is happening.'),
         suggestedFix: z.string().describe('Clear, step-by-step instructions or the exact command/code to fix the issue.'),

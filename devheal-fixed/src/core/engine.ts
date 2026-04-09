@@ -116,6 +116,19 @@ export async function runRules(scanData: any, cwd: string): Promise<Issue[]> {
         fixable: false
       });
     }
+
+    if (!scanData.env.hasGit) {
+      issues.push({
+        ruleId: "missing-git-repo",
+        category: "ENVIRONMENT",
+        title: `MISSING SOURCE CONTROL (.git)`,
+        description: "Project is not version controlled. Code loss is highly likely.",
+        severity: "warning",
+        fixable: true,
+        fixCommand: "git init && git add . && git commit -m \"Initial DevHeal Snapshot\"",
+        fix: { type: "shell", cmd: "git init && git add . && git commit -m \"Initial DevHeal Snapshot\"" }
+      });
+    }
   }
 
   return issues;

@@ -8,25 +8,25 @@ import { Issue, FixAction } from '../types.js';
 
 const execAsync = promisify(exec);
 
-export async function runFix(issues: Issue[], { cwd, dryRun }: { cwd: string; dryRun: boolean }) {
+export async function runFix(issues: Issue[], { cwd, dryRun, silent }: { cwd: string; dryRun: boolean; silent?: boolean }) {
   for (const issue of issues) {
     if (!issue.fix) continue;
 
     const actionText = getFixDescription(issue.fix);
     
     if (dryRun) {
-      p.log.info(chalk.yellow(`[Dry Run] Would fix '${issue.title}' by: ${actionText}`));
+      if (!silent) p.log.info(chalk.yellow(`[Dry Run] Would fix '${issue.title}' by: ${actionText}`));
       continue;
     }
 
-    const s = p.spinner();
-    s.start(`Applying fix: ${issue.title}`);
+    const s = !silent ? p.spinner() : null;
+    if (s) s.start(`Applying fix: ${issue.title}`);
 
     try {
       await applyFix(issue.fix, cwd);
-      s.stop(chalk.green(`Fixed: ${issue.title}`));
+      if (s) s.stop(chalk.green(`Fixed: ${issue.title}`));
     } catch (err: any) {
-      s.stop(chalk.red(`Failed: ${issue.title} — ${err.message}`));
+      if (s) s.stop(chalk.red(`Failed: ${issue.title} — ${err.message}`));
     }
   }
 }

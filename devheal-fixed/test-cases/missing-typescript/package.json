@@ -1,7 +1,0 @@
-{
-  "name": "missing-typescript-test",
-  "type": "module",
-  "devDependencies": {
-    "tsup": "^8.0.0"
-  }
-}

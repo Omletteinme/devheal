@@ -83,18 +83,19 @@ async function scanEnv(cwd: string) {
   const hasVenv = fs.existsSync(path.join(cwd, '.venv')) || fs.existsSync(path.join(cwd, 'venv'));
   const hasPackageJson = fs.existsSync(path.join(cwd, 'package.json'));
   const hasRequirements = fs.existsSync(path.join(cwd, 'requirements.txt'));
+  const hasGit = fs.existsSync(path.join(cwd, '.git'));
   
   let port5432Bound = false;
   let boundProcess = '';
   try {
-    const lsof = execSync('lsof -i :5432', { encoding: 'utf8' }).trim().split('\\n');
+    const lsof = execSync('lsof -i :5432', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim().split('\\n');
     if (lsof.length > 1) {
       port5432Bound = true;
       boundProcess = lsof[1].split(/\\s+/)[0];
     }
   } catch {}
 
-  return { hasEnv, hasEnvExample, hasNodeModules, hasVenv, hasPackageJson, hasRequirements, port5432Bound, boundProcess };
+  return { hasEnv, hasEnvExample, hasNodeModules, hasVenv, hasPackageJson, hasRequirements, hasGit, port5432Bound, boundProcess };
 }
 
 export async function runScan({ cwd }: { cwd: string }): Promise<ScanResult> {

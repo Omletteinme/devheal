@@ -7,7 +7,7 @@ dotenv.config({ path: path.resolve(__dirname, '../.env'), override: true });
 import * as p from "@clack/prompts";
 import chalk from "chalk";
 import { generateText } from "ai";
-import { createAnthropic } from "@ai-sdk/anthropic";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { runScan } from "./core/scanner.js";
 import { runFix } from "./core/fixer.js";
 import { runDoctor } from "./ai/doctor.js";
@@ -19,7 +19,8 @@ const program = new Command();
 program
   .name("devheal")
   .description("DevHeal Engine - AI-powered dev environment health monitor")
-  .version("2.1.0");
+  .version("2.1.0")
+  .addHelpText('beforeAll', `\n${chalk.bgMagenta.white.bold(' 🤖 DevHeal Operations Framework v2.1.0 ')}\n${chalk.gray('The autonomous AI-powered environment stabilizer and fixer.')}\n`);
 
 function renderDashboard(results: ScanResult) {
   let score = 100;
@@ -97,19 +98,19 @@ function renderDashboard(results: ScanResult) {
 async function renderAIAndActions(results: ScanResult, score: number) {
   // Live AI 
   console.log(chalk.bold.white("AI DIAGNOSIS"));
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     console.log(chalk.gray(`AI Diagnosis inactive. To enable live inference:`));
-    console.log(chalk.gray(`1. Get an API key from console.anthropic.com`));
-    console.log(chalk.gray(`2. Set it up using: ${chalk.white("export ANTHROPIC_API_KEY='sk-ant-...'")}`));
+    console.log(chalk.gray(`1. Get an API key from aistudio.google.com`));
+    console.log(chalk.gray(`2. Set it up using: ${chalk.white("export GEMINI_API_KEY='AIza...'")}`));
     console.log(chalk.gray(`3. Alternatively, save it in a .env file locally.`));
   } else if (results.summary.critical > 0 || results.summary.warning > 0) {
     const s = p.spinner();
-    s.start('Asking Claude to analyze your environment...');
+    s.start('Asking Gemini to analyze your environment...');
     try {
-      const anthropicProvider = createAnthropic({ apiKey: apiKey });
+      const googleProvider = createGoogleGenerativeAI({ apiKey: apiKey });
       const { text } = await generateText({
-        model: anthropicProvider('claude-3-5-sonnet-latest'),
+        model: googleProvider('gemini-1.5-flash'),
         system: "You are the DevHeal AI engine. Explain exactly what broke in 3 short sentences. Then state exactly how to fix it in 1 short sentence.",
         prompt: `Dev environment scan failed with ${results.summary.critical} critical and ${results.summary.warning} warnings. Issues: ${JSON.stringify(results.issues.map(i => ({ title: i.title, desc: i.description })))}\nProvide diagnosis.`
       });
@@ -226,6 +227,80 @@ program
 
     await runFix(fixable, { cwd: opts.path, dryRun: opts.dryRun });
     p.outro("Environment repaired flawlessly.");
+  });
+
+program
+  .command("report")
+  .description("Dump CI/CD compliant logs without UI interactivity (alias for scan --json)")
+  .option("-p, --path <dir>", "Project directory", process.cwd())
+  .action(async (opts) => {
+     try {
+        const results = await runScan({ cwd: opts.path });
+        console.log(JSON.stringify(results, null, 2));
+        process.exit(results.summary.critical > 0 ? 1 : 0);
+     } catch (err: any) {
+        console.error(JSON.stringify({ error: err.message }));
+        process.exit(2);
+     }
+  });
+
+program
+  .command("init")
+  .description("Instantly initialize a secure DevHeal-tracked Git repository")
+  .option("-p, --path <dir>", "Project directory", process.cwd())
+  .action(async (opts) => {
+    p.intro(chalk.bgCyan.black.bold(' 🏗️ DevHeal Git Controller '));
+    const s = p.spinner();
+    s.start('Scaffolding a secure version-controlled architecture...');
+    try {
+      const { execSync } = await import('child_process');
+      execSync('git init', { cwd: opts.path, encoding: 'utf8', stdio: 'ignore' });
+      execSync('git add .', { cwd: opts.path, encoding: 'utf8', stdio: 'ignore' });
+      try {
+         execSync('git commit -m "Initial DevHeal Snapshot"', { cwd: opts.path, encoding: 'utf8', stdio: 'ignore' });
+      } catch (e) {
+         // Fails safely if tree is entirely clean and snapshot already exists actively.
+      }
+      s.stop(chalk.green('Repository successfully initialized and securely snapshot.'));
+      p.outro("Environment is fully tracked and ready for automated healing loops!");
+    } catch (err: any) {
+      s.stop(chalk.red('Failed to initialize Git repository. Is Git installed?'));
+      p.outro('Disconnected.');
+      process.exit(1);
+    }
+  });
+
+program
+  .command("rollback")
+  .description("Safely revert the current project repository to its last stable Git snapshot (The 'Undo' Button)")
+  .option("-p, --path <dir>", "Project directory", process.cwd())
+  .action(async (opts) => {
+    p.intro(chalk.bgRed.white.bold(' ⏪ DevHeal Rollback Engine '));
+    
+    p.log.warn(chalk.yellow("WARNING: This will instantly override ALL uncommitted filesystem changes and permanently delete untracked files!"));
+    const apply = await p.confirm({
+      message: `Are you absolutely certain you want to rewind your project state back to the last snapshot?`,
+      initialValue: false,
+    });
+
+    if (p.isCancel(apply) || !apply) {
+      p.outro("Rollback aborted. Your current changes have been kept safe.");
+      process.exit(0);
+    }
+
+    const s = p.spinner();
+    s.start('Initiating secure system rollback sequence...');
+    try {
+      const { execSync } = await import('child_process');
+      // Perform strict reset removing hallucinated edits entirely.
+      execSync('git reset --hard HEAD && git clean -fd', { cwd: opts.path, encoding: 'utf8', stdio: 'ignore' });
+      s.stop(chalk.green('Project state flawlessly completely rolled back to the last formal repository baseline snapshot!'));
+      p.outro("System restored.");
+    } catch (err: any) {
+      s.stop(chalk.red('Failed to rewind the environment framework. Does a snapshot actually exist?'));
+      p.outro('Disconnected.');
+      process.exit(1);
+    }
   });
 
 program
