@@ -30,7 +30,8 @@ function renderDashboard(results: ScanResult) {
 
   const width = process.stdout.columns ? Math.min(process.stdout.columns, 80) : 70;
   
-  const headerContent = `  devheal v2.1.0 • scan completed in ${results.metadata.elapsedMs}ms • Node.js core  `;
+  const elapsedSeconds = (results.metadata.elapsedMs / 1000).toFixed(2);
+  const headerContent = `  devheal v2.1.0 • scan completed in ${elapsedSeconds}s • Node.js core  `;
   const paddingLength = width - 4 - headerContent.length;
   const padding = paddingLength > 0 ? " ".repeat(paddingLength) : "";
 
@@ -95,43 +96,6 @@ function renderDashboard(results: ScanResult) {
   return score;
 }
 
-async function renderAIAndActions(results: ScanResult, score: number) {
-  // Live AI 
-  console.log(chalk.bold.white("AI DIAGNOSIS"));
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    console.log(chalk.gray(`AI Diagnosis inactive. To enable live inference:`));
-    console.log(chalk.gray(`1. Get an API key from aistudio.google.com`));
-    console.log(chalk.gray(`2. Set it up using: ${chalk.white("export GEMINI_API_KEY='AIza...'")}`));
-    console.log(chalk.gray(`3. Alternatively, save it in a .env file locally.`));
-  } else if (results.summary.critical > 0 || results.summary.warning > 0) {
-    const s = p.spinner();
-    s.start('Asking Gemini to analyze your environment...');
-    try {
-      const googleProvider = createGoogleGenerativeAI({ apiKey: apiKey });
-      const { text } = await generateText({
-        model: googleProvider('gemini-1.5-flash'),
-        system: "You are the DevHeal AI engine. Explain exactly what broke in 3 short sentences. Then state exactly how to fix it in 1 short sentence.",
-        prompt: `Dev environment scan failed with ${results.summary.critical} critical and ${results.summary.warning} warnings. Issues: ${JSON.stringify(results.issues.map(i => ({ title: i.title, desc: i.description })))}\nProvide diagnosis.`
-      });
-      s.stop(`AI Diagnosis (confidence: ${(Math.random() * (0.98 - 0.88) + 0.88).toFixed(2)})`);
-      console.log(chalk.gray(text));
-    } catch (err: any) {
-      s.stop('AI Diagnosis failed.');
-      console.log(chalk.red(`Error: ${err.message}`));
-    }
-  } else {
-    console.log(chalk.gray(`Environment is healthy. No AI intervention required.`));
-  }
-
-  console.log(chalk.gray("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
-  console.log(chalk.bold.white("ACTIONS"));
-  console.log(`  ${chalk.green("devheal fix")} → applies ${results.summary.fixable > 0 ? chalk.bold(results.summary.fixable) : 0} safe auto-fixes directly`);
-  console.log(`  ${chalk.yellow("devheal doctor \"query\" -f <file>")} → deeply analyze specific codebase files`);
-  console.log(`  ${chalk.blue("devheal report --json")} → dumps CI/CD compliant logs`);
-  console.log("");
-}
-
 program
   .command("scan")
   .description("Launch the DevHeal diagnostic dashboard")
@@ -153,7 +117,6 @@ program
         process.exit(results.summary.critical > 0 ? 1 : 0);
       } else {
         const score = renderDashboard(results);
-        await renderAIAndActions(results, score);
 
         if (results.summary.fixable > 0) {
           if (opts.fix) {
@@ -231,7 +194,7 @@ program
 
 program
   .command("report")
-  .description("Dump CI/CD compliant logs without UI interactivity (alias for scan --json)")
+  .description("Dump CI/CD compliant logs without UI interactivity")
   .option("-p, --path <dir>", "Project directory", process.cwd())
   .action(async (opts) => {
      try {
@@ -301,18 +264,6 @@ program
       p.outro('Disconnected.');
       process.exit(1);
     }
-  });
-
-program
-  .command("doctor")
-  .description("Ask the AI to diagnose a specific issue intelligently")
-  .argument("<query>", "Specific query about the error/issue")
-  .option("-f, --file <path>", "Target file to upload and analyze")
-  .option("-p, --path <dir>", "Project directory", process.cwd())
-  .action(async (query, opts) => {
-    p.intro(chalk.bgGreen.black.bold(' 🤖 DevHeal Intelligence Layer '));
-    await runDoctor(query, opts.file, opts.path);
-    p.outro("Diagnostic cycle complete.");
   });
 
 program.parse(process.argv);

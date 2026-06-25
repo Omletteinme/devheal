@@ -78,7 +78,8 @@ export async function runRules(scanData: any, cwd: string): Promise<Issue[]> {
         description: "Copy .env.example to .env to fix this.",
         severity: "warning",
         fixable: true,
-        fixCommand: "cp .env.example .env"
+        fixCommand: "cp .env.example .env",
+        fix: { type: "shell", cmd: "node -e \"require('fs').copyFileSync('.env.example', '.env')\"" }
       });
     }
 
@@ -90,7 +91,8 @@ export async function runRules(scanData: any, cwd: string): Promise<Issue[]> {
         description: "Your dependencies have not been installed. Application will not run.",
         severity: "critical",
         fixable: true,
-        fixCommand: "npm install"
+        fixCommand: "npm install",
+        fix: { type: "shell", cmd: "npm install" }
       });
     }
 
@@ -102,7 +104,19 @@ export async function runRules(scanData: any, cwd: string): Promise<Issue[]> {
         description: "requirements.txt detected but no .venv exists.",
         severity: "warning",
         fixable: true,
-        fixCommand: "python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt"
+        fixCommand: "python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt",
+        fix: { type: "shell", cmd: "python3 -m venv .venv || python -m venv .venv" }
+      });
+      // Added secondary fix to install dependencies across unix and windows cross-platform.
+      issues.push({
+        ruleId: "install-py-deps",
+        category: "PYTHON",
+        title: `INSTALL DEPENDENCIES: Syncing requirements.txt into .venv`,
+        description: "",
+        severity: "info",
+        fixable: true,
+        fixCommand: "pip install -r requirements.txt",
+        fix: { type: "shell", cmd: ".venv/bin/pip install -r requirements.txt || .venv\\Scripts\\pip install -r requirements.txt" }
       });
     }
 
